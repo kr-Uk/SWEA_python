@@ -1,74 +1,57 @@
-"""
-행렬
-
-dn = max(dn-1 * matrixn, dn-2 * matrixn-1 * matrixn)
-"""
-
 MSG_FORMAT = '#{} {}'
 
 def searchSize(x, y):
     cnt_x = x
     cnt_y = y
-    
     while cnt_x < n and graph[y][cnt_x] != 0:
         cnt_x += 1
-    
     while cnt_y < n and graph[cnt_y][x] != 0:
         cnt_y += 1
-    
-    for _y in range(y, cnt_y):
-        for _x in range(x, cnt_x):
-            graph[_y][_x] = 0
-    
-    return (cnt_y-y, cnt_x-x)
+    return (cnt_y - y, cnt_x - x)
 
 def sequenceSort(m):
-    temp = []
-    start_x = set()
-    start_y = set()
+    mapping = {r: c for r, c in m}
+    all_rows = {r for r, _ in m}
+    all_cols = {c for _, c in m}
     
-    for x, y in m:
-        start_x.add(x)
-        start_y.add(y)
-    
-    start = start_x.pop()
-
-    while True:
-        for x, y in m:
-            if x == start:
-                temp.append((x, y))
-                start = y
-                break
-        if len(temp) == len(m):
+    start = None
+    for r in all_rows:
+        if r not in all_cols:
+            start = r
             break
     
-    return temp
+    seq = [start]
+    while start in mapping:
+        start = mapping[start]
+        seq.append(start)
+    return seq
 
 t = int(input())
-
 for test_case in range(1, t+1):
-    result = 0
-    
     n = int(input())
     graph = [list(map(int, input().split())) for _ in range(n)]
-    matrix = []
+    visited = [[False]*n for _ in range(n)]
+    matrices = []
     
     for y in range(n):
         for x in range(n):
-            if graph[y][x] != 0:
-                matrix.append(searchSize(x, y))
+            if graph[y][x] != 0 and not visited[y][x]:
+                h, w = searchSize(x, y)
+                matrices.append((h, w))
+                for _y in range(y, y+h):
+                    for _x in range(x, x+w):
+                        visited[_y][_x] = True
     
-    dp = [0] * (len(matrix)+1)
-    matrix = sequenceSort(matrix)
+    dims = sequenceSort(matrices)
+    m_len = len(dims) - 1
+    dp = [[0]*(m_len+1) for _ in range(m_len+1)]
     
-    ################## 여기부터 ###
-    dp[2] = matrix[0][0] * matrix[0][1] * matrix[1][1]
-    if len(matrix) > 2:
-        dp[3] = min(matrix[0][0] * matrix[0][1] * matrix[1][1] + matrix[0][0] * matrix[1][1] * matrix[2][1],
-                    matrix[1][0] * matrix[1][1] * matrix[2][1] + matrix[0][0] * matrix[0][1] * matrix[2][1])
+    for diag in range(2, m_len+1):
+        for i in range(1, m_len-diag+2):
+            j = i + diag - 1
+            dp[i][j] = 1e9
+            for k in range(i, j):
+                dp[i][j] = min(dp[i][j],
+                            dp[i][k] + dp[k+1][j] + dims[i-1]*dims[k]*dims[j])
     
-    # dp만 하기 !
-    for i in range(4, n+1):
-        dp[i] = min(dp[i-1] + matrix[0][0] * matrix[0][1] * matrix[1][1]) 
-    
-    print(MSG_FORMAT.format(test_case, result))
+    print(MSG_FORMAT.format(test_case, dp[1][m_len]))
